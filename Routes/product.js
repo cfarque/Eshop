@@ -23,16 +23,37 @@ router.post("/product/create", async (req, res) => {
   }
 });
 
-//READ
+//READ  new RegExp ("", "i")
 router.get("/product", async (req, res) => {
   try {
+    const search = Product.find().populate("category");
     if (req.query.category) {
       const products = await Product.find({
         category: req.query.category
       }).populate("category");
-      res.json(products);
-    } else {
     }
+    if (req.query.title) {
+      const products = await Product.find({
+        title: new RegExp(req.query.title, "i")
+      });
+    }
+    if (req.query.priceMin) {
+      const products = await Product.find({ price: { $gte: req.query.price } });
+    }
+    if (req.query.priceMax) {
+      const products = await Product.find({
+        price: { $lte: req.query.price }
+      });
+      if (req.query.sort === "price-asc") {
+        search.sort({ price: 1 });
+      }
+    } else {
+      const products = await Product.find({
+        category: req.query.category
+      }).populate("category");
+    }
+    const products = await search;
+    res.json(products);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
