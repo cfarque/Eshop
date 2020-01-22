@@ -13,15 +13,17 @@ router.post("/category/create", async (req, res) => {
     const deptOfCat = await Department.findOne({
       title: req.fields.department
     });
-
-    console.log(deptOfCat);
-    const newCategory = new Category({
-      title: req.fields.title,
-      description: req.fields.description,
-      department: deptOfCat._id
-    });
-    await newCategory.save();
-    res.json({ message: "Category created" });
+    if (deptOfCat) {
+      const newCategory = new Category({
+        title: req.fields.title,
+        description: req.fields.description,
+        department: deptOfCat._id
+      });
+      await newCategory.save();
+      res.json({ message: "Category created" });
+    } else {
+      res.json({ message: "Department don't exist" });
+    }
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -30,6 +32,8 @@ router.post("/category/create", async (req, res) => {
 //READ
 router.get("/category", async (req, res) => {
   try {
+    const allCategory = await Category.find().populate("department");
+    res.json(allCategory);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -38,6 +42,14 @@ router.get("/category", async (req, res) => {
 //UPDATE
 router.post("/category/update", async (req, res) => {
   try {
+    const categoryToUpdate = await Category.findOne({ _id: req.query.id });
+    const newDepartment = await Department.findById(req.fields.department);
+    (categoryToUpdate.id = req.query.id),
+      (categoryToUpdate.title = req.fields.title),
+      (categoryToUpdate.description = req.fields.description),
+      (categoryToUpdate.department = newDepartment.id);
+    await categoryToUpdate.save();
+    res.json({ message: "Category updated" });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
