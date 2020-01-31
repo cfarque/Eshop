@@ -1,8 +1,6 @@
 const express = require("express");
 const router = express.Router();
 
-const Category = require("../Models/Category");
-const Department = require("../Models/Department");
 const Product = require("../Models/Product");
 
 //CRUD
@@ -22,35 +20,35 @@ router.post("/product/create", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-
+const createFilter = req => {
+  const filter = {};
+  if (req.query.priceMin) {
+    filter.price = {};
+    filter.price.$gte = req.query.priceMin;
+  }
+  if (req.query.priceMax) {
+    if (filter.price === undefined) {
+      filter.price = {};
+    }
+    filter.price.$lte = req.query.priceMax;
+  }
+  if (req.query.title) {
+    filter.title = new RegExp(req.query.title, "i");
+  }
+  if (req.query.category) {
+    filter.category = req.query.category;
+  }
+  return filter;
+};
 //READ  new RegExp ("", "i")
 router.get("/product", async (req, res) => {
   try {
-    const search = Product.find().populate("category");
-    if (req.query.category) {
-      const products = await Product.find({
-        category: req.query.category
-      }).populate("category");
-    }
-    if (req.query.title) {
-      const products = await Product.find({
-        title: new RegExp(req.query.title, "i")
-      });
-    }
-    if (req.query.priceMin) {
-      const products = await Product.find({ price: { $gte: req.query.price } });
-    }
-    if (req.query.priceMax) {
-      const products = await Product.find({
-        price: { $lte: req.query.price }
-      });
-      if (req.query.sort === "price-asc") {
-        search.sort({ price: 1 });
-      }
-    } else {
-      const products = await Product.find({
-        category: req.query.category
-      }).populate("category");
+    const filters = createFilter(req);
+    const search = Product.find(filters).populate("category");
+    if (req.query.sort === "price-asc") {
+      search.sort({ price: 1 });
+    } else if (req.query.sort === "price-desc") {
+      search.sort({ price: -1 });
     }
     const products = await search;
     res.json(products);
@@ -61,6 +59,14 @@ router.get("/product", async (req, res) => {
 //UPDATE
 router.post("/product/update", async (req, res) => {
   try {
+    if (req.query.id) {
+      const productToUpdate = await Product.findById({ id: req.query.id });
+      productToUpdate.title = req.fields.title;
+      productToUpdate.description = req.fields.description;
+      productToUpdate.price = req.fields.price;
+      productToUpdate.category = req.fields.category;
+      await productToUpdate.save();
+    }
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -68,6 +74,8 @@ router.post("/product/update", async (req, res) => {
 //DELETE
 router.post("/product/delete", async (req, res) => {
   try {
+    const productToDelete = await Product.findById({ id: req.query.id });
+    await productToDelete.remove();
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

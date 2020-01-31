@@ -58,6 +58,17 @@ router.post("/category/update", async (req, res) => {
 //DELETE
 router.post("/category/delete", async (req, res) => {
   try {
+    const idToFind = req.query._id;
+    const categoryToDelete = await Category.find({ _id: idToFind });
+    const productToDelete = await Product.find({
+      category: idToFind
+    });
+    productuToDelete.forEach(product => {
+      product.remove();
+    });
+    await categoryToDelete.remove();
+
+    res.json({ message: "category deleted" });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

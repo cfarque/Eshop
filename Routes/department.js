@@ -48,6 +48,23 @@ router.post("/department/update", async (req, res) => {
 
 router.post("department/delete", async (req, res) => {
   try {
+    const idDepartmentToDelete = req.query._id;
+    const departmentToDelete = await Department.findOne({
+      _id: idDepartmentToDelete
+    });
+    const categoryToDelete = await Category.find({
+      department: idDepartmentToDelete
+    });
+    categoryToDelete.forEach(async category => {
+      const productToDelete = await Product.find({ category: category._id });
+      productToDelete.forEach(product => {
+        product.remove();
+      });
+      category.remove();
+      await departmentToDelete.remove();
+
+      res.json({ message: "Department deleted" });
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
